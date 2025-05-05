@@ -1,34 +1,37 @@
-# main.py
-from flask import Flask, request, jsonify
-from kucoin.client import Trade
-import os
+from flask import Flask, request
+from kucoin.client import Client
 
+# Claves API de KuCoin (¡NO compartas esto con nadie!)
+API_KEY = "68180bed61d419000171fae6"
+API_SECRET = "b18ed605-c693-4b32-ab9c-cd49413e0cbf"
+API_PASSPHRASE = "1085041052Yoimer"
+
+client = Client(API_KEY, API_SECRET, API_PASSPHRASE)
+
+# === APP FLASK PARA RECIBIR ALERTAS ===
 app = Flask(__name__)
-
-# Datos de autenticación desde las variables de entorno
-API_KEY = os.environ.get("68180bed61d419000171fae6")
-API_SECRET = os.environ.get("b18ed605-c693-4b32-ab9c-cd49413e0cbf")
-API_PASSPHRASE = os.environ.get("1085041052Yoimer")
-
-client = Trade(key=API_KEY, secret=API_SECRET, passphrase=API_PASSPHRASE)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.json
-    print("Alerta recibida:", data)
+    print("📩 Alerta recibida:", data)
 
-    if data.get('evento') == 'compra' and data.get('par') == 'BTCUSDT':
+    if data['evento'] == "compra" and data['par'] == "BTC-USDT":
         try:
-            cantidad = 0.0001
-            orden = client.create_market_order(symbol='BTC-USDT', side='buy', size=str(cantidad))
+            # Ajusta el tamaño según tu capital disponible
+            cantidad = 0.0001  # por ejemplo: 0.0001 BTC
+
+            orden = client.create_market_order(
+                symbol='BTC-USDT',
+                side='buy',
+                size=cantidad
+            )
+
             print("✅ Orden ejecutada:", orden)
-            return jsonify({"mensaje": "Compra ejecutada correctamente"})
+            return {"mensaje": "Compra ejecutada correctamente"}
 
         except Exception as e:
-            print("❌ Error al ejecutar la orden:", str(e))
-            return jsonify({"error": str(e)}), 500
+            print("❌ Error al ejecutar la orden:", e)
+            return {"error": str(e)}
 
-    return jsonify({"mensaje": "Condiciones no cumplidas"})
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    return {"mensaje": "Par o evento no reconocido"}
